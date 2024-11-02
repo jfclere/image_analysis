@@ -54,9 +54,7 @@ class FindLaser():
     totalval = 0
    
     for row in range(startrow, endrow):
-      print(row)
       for col in range(startcol, endcol):
-        print(col)
         if self.is_inside(row, col, center, radius):
             # Means the point is inside/on the face
             # Make it opaque
@@ -66,15 +64,40 @@ class FindLaser():
             totalval = totalval + img[row][col][0]
             totalval = totalval + img[row][col][1]
             totalval = totalval + img[row][col][2]
-            img[row][col] = 255
-        # else:
-            # Means the point is outside the face
-            # Make it transparent
-            #img[row][col][3] = 255
-            #img[row][col] = 0
+    if numpts == 0:
+      return 0
     print("value: ")
     print(totalval/numpts)
-    return img
+    return totalval/numpts
+
+  def value_red_in_circle(self, img, center, radius):
+    print("value__red_in_circle")
+    print(img.shape[0])
+    print(img.shape[1])
+    print(center[0])
+    print(center[1])
+    print("value__red_in_circle")
+    # for row in range(img.shape[0]):
+    startrow = int(center[1]-radius)
+    endrow = int(center[1]+radius)
+    startcol = int(center[0]-radius)
+    endcol = int(center[0]+radius)
+    numpts = 0
+    totalval = 0
+   
+    for row in range(startrow, endrow):
+      for col in range(startcol, endcol):
+        if self.is_inside(row, col, center, radius):
+            # Means the point is inside/on the face
+            # Make it opaque
+            #mg[row][col][3] = 0
+            print("negatif...")
+            numpts = numpts + 1
+            totalval = totalval + img[row][col][2]
+    if numpts == 0:
+      return 0
+    print("value red: " + str(totalval/numpts))
+    return totalval/numpts
 
   def threshold_image(self, channel):
         if channel == "hue":
@@ -125,57 +148,38 @@ class FindLaser():
             # centroid
             print(len(countours))
             # the laser is a white circle surrounded with red
-            # for c in countours:
-            c = max(countours, key=cv2.contourArea)
-            center,radius = cv2.minEnclosingCircle(c)
-            print("center")
-            print(center)
-            print("radius")
-            print(radius)
+            for c in countours:
+              center,radius = cv2.minEnclosingCircle(c)
+              if (radius < 2):
+                continue
+              print("center")
+              print(center)
+              print("radius")
+              print(radius)
            
-            #self.trail = self.value_in_circle (frame, center, radius)
-            trail = self.value_in_circle (frame, center, radius)
-            cv2.imwrite("result.jpg", trail);
-            # JFC (x,y) = center
-            # JFC x = int(x)
-            # JFC y = int(y)
-            # JFC radius = int(radius)
-            # JFC circle_mask = numpy.zeros((self.height,self.width), numpy.uint8)
-            # JFC circle_img = cv2.circle(circle_mask, (x, y) ,radius, (255,255,255),-1)
-            # JFC masked_data = cv2.bitwise_and(frame, frame, mask=circle_img)
-              # _,thresh = cv2.threshold(circle_mask,1,255,cv2.THRESH_BINARY)
-              # circle_contours = cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-              # print(len(circle_contours))
-              # x,y,w,h = cv2.boundingRect(circle_contours[0])
-              # crop = masked_data[y:y+h,x:x+w]
-            # self.trail = masked_data
-            # num = numpy.mean(circle_img) * 100 / 255
-            # print("cv2.countNonZero image: " + str(num))
-            cv2.drawContours(frame, countours, -1, (0,255,0), 3)
-            # self.trail = frame;
-            c = max(countours, key=cv2.contourArea)
-            ((x, y), radius) = cv2.minEnclosingCircle(c)
-            moments = cv2.moments(c)
-            if moments["m00"] > 0:
-                center = int(moments["m10"] / moments["m00"]), \
-                         int(moments["m01"] / moments["m00"])
-            else:
-                center = int(x), int(y)
+              bright = self.value_in_circle (frame, center, radius)
+              if (bright > 250):
+                print(str(bright) + " Found at " + str(center) + " radius " + str(radius))
+              else:
+                continue
 
-            # only proceed if the radius meets a minimum size
-            if radius > 9:
-                print("Found: " + str(radius))
-                print("Found at " + str(x) + ":" + str(y));
-                # draw the circle and centroid on the frame,
-                cv2.circle(frame, (int(x), int(y)), int(radius),
-                           (0, 255, 255), 2)
-                cv2.circle(frame, center, 5, (0, 0, 255), -1)
-                # then update the ponter trail
-                if self.previous_position:
-                    cv2.line(self.trail, self.previous_position, center,
-                             (255, 255, 255), 2)
-            else:
-                print("Too small???" + str(radius))
+              # check for red around the bright contour
+              red = self.value_red_in_circle (frame, center, radius+10)
+              if (red > 160):
+                print(str(red) + " Found red at " + str(center) + " radius " + str(radius))
+              else:
+                continue
+
+              (x,y) = center
+              x = int(x)
+              y = int(y)
+              radius = int(radius)
+              # draw the circle and centroid on the frame,
+              cv2.circle(frame, (x, y), radius+10,
+                         (0, 255, 255), 2)
+              cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
+            cv2.drawContours(frame, countours, -1, (0,255,0), 3)
+            self.trail = frame;
 
         # cv2.add(self.trail, frame, frame)
         # self.trail = frame;
@@ -224,4 +228,4 @@ if __name__ == '__main__':
     print (height, width, channels)
     finder = FindLaser(height, width, 0)
     image = finder.detect(image)
-    # cv2.imwrite("result.jpg", finder.trail);
+    cv2.imwrite("result.jpg", finder.trail);
