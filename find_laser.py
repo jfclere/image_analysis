@@ -35,17 +35,9 @@ class FindLaser():
     """ This function returns True if point is inside/on the boundary, False otherwise """
     # eqn = (point[0] - center[0]) ** 2 + (point[1] - center[1])**2 - (radius**2)
     eqn = (col - center[0]) ** 2 + (row - center[1])**2 - (radius**2)
-    print(eqn)
     return eqn <= 0.
 
   def value_in_circle(self, img, center, radius):
-    print("value_in_circle")
-    print(img.shape[0])
-    print(img.shape[1])
-    print(center[0])
-    print(center[1])
-    print("value_in_circle")
-    # for row in range(img.shape[0]):
     startrow = int(center[1]-radius)
     endrow = int(center[1]+radius)
     startcol = int(center[0]-radius)
@@ -57,47 +49,60 @@ class FindLaser():
       for col in range(startcol, endcol):
         if self.is_inside(row, col, center, radius):
             # Means the point is inside/on the face
-            # Make it opaque
-            #mg[row][col][3] = 0
-            print("negatif...")
             numpts = numpts + 3
             totalval = totalval + img[row][col][0]
             totalval = totalval + img[row][col][1]
             totalval = totalval + img[row][col][2]
     if numpts == 0:
       return 0
-    print("value: ")
-    print(totalval/numpts)
+    print("value_in_circle value: " + str(totalval/numpts))
     return totalval/numpts
 
-  def value_red_in_circle(self, img, center, radius):
-    print("value__red_in_circle")
-    print(img.shape[0])
-    print(img.shape[1])
-    print(center[0])
-    print(center[1])
-    print("value__red_in_circle")
-    # for row in range(img.shape[0]):
+  def value_red_in_circle(self, img, center, radius, radiusext):
     startrow = int(center[1]-radius)
     endrow = int(center[1]+radius)
     startcol = int(center[0]-radius)
     endcol = int(center[0]+radius)
+    for row in range(startrow, endrow):
+      for col in range(startcol, endcol):
+        if self.is_inside(row, col, center, radius):
+            # Means the point is inside/on the face
+            img[row][col] = 0 # make it dark.
+
+
     numpts = 0
-    totalval = 0
+    totalred = 0
+    totalgreen = 0
+    totalblue = 0
+    startrow = int(center[1]-radiusext)
+    endrow = int(center[1]+radiusext)
+    startcol = int(center[0]-radiusext)
+    endcol = int(center[0]+radiusext)
    
     for row in range(startrow, endrow):
       for col in range(startcol, endcol):
         if self.is_inside(row, col, center, radius):
             # Means the point is inside/on the face
-            # Make it opaque
-            #mg[row][col][3] = 0
-            print("negatif...")
+            if img[row][col][0] == 0 and img[row][col][1] == 0 and img[row][col][2] == 0:
+               continue # skip center...
             numpts = numpts + 1
-            totalval = totalval + img[row][col][2]
+            totalred = totalred + img[row][col][2]
+            totalgreen = totalgreen + img[row][col][1]
+            totalblue = totalblue + img[row][col][0]
     if numpts == 0:
       return 0
-    print("value red: " + str(totalval/numpts))
-    return totalval/numpts
+    mred = totalred/numpts
+    mgreen = totalgreen/numpts
+    mblue = totalblue/numpts 
+
+    # try to find the red of the laser
+    # ignore bright points
+    #if mgreen>240 and mblue>240:
+    #   return 0
+    print("value_red_in_circle " + str(mblue) + " " + str(mgreen) + " " + str(mred))
+    #  return 0 # Not mostly red
+    print("value_red_in_circle value red: " + str(totalred/numpts))
+    return totalred/numpts
 
   def threshold_image(self, channel):
         if channel == "hue":
@@ -148,14 +153,13 @@ class FindLaser():
             # centroid
             print(len(countours))
             # the laser is a white circle surrounded with red
+            i = 0
             for c in countours:
               center,radius = cv2.minEnclosingCircle(c)
-              if (radius < 2):
+              if (radius < 1):
                 continue
-              print("center")
-              print(center)
-              print("radius")
-              print(radius)
+              print("center: " + str(center))
+              print("radius: " + str(radius))
            
               bright = self.value_in_circle (frame, center, radius)
               if (bright > 250):
@@ -164,10 +168,11 @@ class FindLaser():
                 continue
 
               # check for red around the bright contour
-              red = self.value_red_in_circle (frame, center, radius+10)
+              red = self.value_red_in_circle(frame, center, radius, radius*2)
               if (red > 160):
                 print(str(red) + " Found red at " + str(center) + " radius " + str(radius))
               else:
+                print("MERDE")
                 continue
 
               (x,y) = center
@@ -175,14 +180,45 @@ class FindLaser():
               y = int(y)
               radius = int(radius)
               # draw the circle and centroid on the frame,
-              cv2.circle(frame, (x, y), radius+10,
-                         (0, 255, 255), 2)
-              cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
-            cv2.drawContours(frame, countours, -1, (0,255,0), 3)
-            self.trail = frame;
+              # looking to the laser color as seen by the camera
+              # 50, 47, 237 near but not...
+              # read in the jpg (vertically from the center)
+              #[ 83  76 149]
+              #[ 84  77 158]
+              #[ 86  76 166]
+              #[ 87  70 173]
+              #[ 72  48 172]
+              #[ 68  32 186] not too bad
+              #[ 64  14 186]
+              #[ 92  27 206]
+              #[ 95  37 185]
+              #[168 137 212]
+              #[168 137 212]
+              #[254 241 255]
+              #[0 0 0] (0 was written there on purpose)
+
+              cv2.circle(frame, (x, y), radius+30,
+                         (68, 32, 186), 2)
+              print(frame[y-12, x])
+              print(frame[y-11, x])
+              print(frame[y-10, x])
+              print(frame[y-9, x])
+              print(frame[y-8, x])
+              print(frame[y-7, x])
+              print(frame[y-6, x])
+              print(frame[y-5, x])
+              print(frame[y-4, x])
+              print(frame[y-3, x])
+              print(frame[y-2, x])
+              print(frame[y-1, x])
+              if i == 0:
+                frame[y-5, x] = 255
+              i = i + 1
+              # cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
+            # cv2.drawContours(frame, countours, -1, (0,255,0), 3)
 
         # cv2.add(self.trail, frame, frame)
-        # self.trail = frame;
+        self.trail = frame;
         self.previous_position = center
 
   def detect(self, frame):
