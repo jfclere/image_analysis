@@ -226,6 +226,13 @@ class FindLaser():
         self.trail = frame;
         self.previous_position = center
 
+  def contours(self, frame, mask):
+        countours = cv2.findContours(mask, cv2.RETR_EXTERNAL,
+                                     cv2.CHAIN_APPROX_SIMPLE)[-2]
+        self.trail = frame;
+        return countours
+
+
   def detect(self, frame):
         hsv_img = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -257,9 +264,9 @@ class FindLaser():
             self.channels['value'],
         ])
 
-        self.track(frame, self.channels['laser'])
-
-        return hsv_image
+        # self.track(frame, self.channels['laser'])
+        c = self.contours(frame, self.channels['laser'])
+        return c
 
 if __name__ == '__main__':
     image = cv2.imread("/tmp/now.jpg");
@@ -267,7 +274,36 @@ if __name__ == '__main__':
       exit(1)
     height, width, channels = image.shape
     print (height, width, channels)
-    finder = FindLaser(height, width, 1)
-    image = finder.detect(image)
-    #cv2.imwrite("result.jpg", finder.trail);
-    cv2.imwrite("result.jpg", image)
+    finder_red = FindLaser(height, width, 1)
+    finder_white = FindLaser(height, width, 0)
+    contours_red = finder_red.detect(image)
+    contours_white = finder_white.detect(image)
+    for c in contours_red:
+       center,radius = cv2.minEnclosingCircle(c)
+       (x,y) = center
+       x = int(x)
+       y = int(y)
+       radius = int(radius)
+       cv2.circle(image, (x,y), radius+30, (68, 32, 186), 2)
+       # normally the red is around the white
+       for wc in contours_white:
+         wcenter,wradius = cv2.minEnclosingCircle(wc)
+         (x,y) = wcenter
+         x = int(x)
+         y = int(y)
+         wradius = int(wradius)
+         cv2.circle(image, (x,y), wradius+30, (255, 255, 255), 2)
+         start = center[0] - radius
+         end = center[0] + radius
+         if wcenter[0]>start and wcenter[0]<start:
+           start = center[1] - radius
+           end = center[1] + radius
+           if wcenter[1]>start and wcenter[1]<start:
+             # the white center is somewhere in the red circle
+             cv2.circle(image, center, radius+30, (68, 32, 186), 2)
+             cv2.circle(image, wcenter, wradius+30, (255, 255, 255), 2)
+            
+    #image = finder_red.detect(image)
+    #cv2.imwrite("result.jpg", finder_red.trail);
+    cv2.imwrite("result.jpg", finder_white.trail);
+    #cv2.imwrite("result.jpg", image)
