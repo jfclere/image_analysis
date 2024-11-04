@@ -22,12 +22,17 @@ class FindLaser():
     self.sat_max = 10
     self.val_min = 200
     self.val_max = 255
-    # looking for red
+    # looking for red (#[ 68  32 186] not too bad RGB)
+    # H:346 S:70.6% L: 42.7 % (from Internet)
+    # was hue_min = 20, hue_max = 160, sat_min = 100, sat_max = 255
+    # For HSV, Hue range is [0,179], Saturation range is [0,255] and Value range is [0,255]
     if red:
       self.hue_min = 20
       self.hue_max = 160
-      self.sat_min = 100
+      self.sat_min = 150
       self.sat_max = 255
+      self.val_min = 150
+      self.val_max = 210
 
     self.trail = numpy.zeros((height, width, 3), numpy.uint8)
 
@@ -215,7 +220,7 @@ class FindLaser():
                 frame[y-5, x] = 255
               i = i + 1
               # cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
-            # cv2.drawContours(frame, countours, -1, (0,255,0), 3)
+            cv2.drawContours(frame, countours, -1, (0,255,0), 3)
 
         # cv2.add(self.trail, frame, frame)
         self.trail = frame;
@@ -262,6 +267,7 @@ if __name__ == '__main__':
       exit(1)
     height, width, channels = image.shape
     print (height, width, channels)
-    finder = FindLaser(height, width, 0)
+    finder = FindLaser(height, width, 1)
     image = finder.detect(image)
-    cv2.imwrite("result.jpg", finder.trail);
+    #cv2.imwrite("result.jpg", finder.trail);
+    cv2.imwrite("result.jpg", image)
