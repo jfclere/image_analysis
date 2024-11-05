@@ -284,6 +284,10 @@ if __name__ == '__main__':
        x = int(x)
        y = int(y)
        radius = int(radius)
+       start0 = center[0] - radius
+       end0 = center[0] + radius
+       start1 = center[1] - radius
+       end1 = center[1] + radius
        cv2.circle(image, (x,y), radius+30, (68, 32, 186), 2)
        # normally the red is around the white
        for wc in contours_white:
@@ -293,15 +297,10 @@ if __name__ == '__main__':
          y = int(y)
          wradius = int(wradius)
          cv2.circle(image, (x,y), wradius+30, (255, 255, 255), 2)
-         start = center[0] - radius
-         end = center[0] + radius
-         if wcenter[0]>start and wcenter[0]<start:
-           start = center[1] - radius
-           end = center[1] + radius
-           if wcenter[1]>start and wcenter[1]<start:
+         if wcenter[0]>start0 and wcenter[0]<end0:
+           if wcenter[1]>start1 and wcenter[1]<end1:
              # the white center is somewhere in the red circle
-             cv2.circle(image, center, radius+30, (68, 32, 186), 2)
-             cv2.circle(image, wcenter, wradius+30, (255, 255, 255), 2)
+             cv2.circle(image, (x,y), wradius+30, (0, 255, 255), 2)
             
     #image = finder_red.detect(image)
     #cv2.imwrite("result.jpg", finder_red.trail);
