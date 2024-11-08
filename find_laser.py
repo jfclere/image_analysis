@@ -268,13 +268,50 @@ class FindLaser():
         c = self.contours(frame, self.channels['laser'])
         return c
 
+  #[ 68  32 186] not too bad
+  def enhancehalo(self, image, c1, c2, c3):
+        range = 45
+        h3 = c3 + range
+        if h3 > 255:
+          h3 = 255
+        h2 = c2 + range
+        if h2 > 255:
+          h2 = 255
+        h1 = c1 + range
+        if h1 > 255:
+          h1 = 255
+        l3 = c3 -range
+        if l3 < 0:
+          l3 = 0
+        l2 = c2 -range
+        if l2 < 0:
+          l2 = 0
+        l1 = c1 -range
+        if l1 < 0:
+          l1 = 0
+        lower_red = numpy.array([l1, l2, l3], dtype = "uint8")
+        upper_red = numpy.array([h1, h2, h3], dtype = "uint8")
+        #lower_red = numpy.array([c1, c2, c3], dtype = "uint8")
+        # upper_red = numpy.array([c1+20, c2+20, c3+20], dtype = "uint8")
+        # upper_red = numpy.array([255, 255, 255], dtype = "uint8")
+        mask = cv2.inRange(image, lower_red, upper_red)
+        detected_output = cv2.bitwise_and(image, image, mask = mask)
+        return detected_output
+
 if __name__ == '__main__':
     image = cv2.imread("/tmp/now.jpg");
     if image is None:
       exit(1)
     height, width, channels = image.shape
     print (height, width, channels)
+
+    # Try to enhance the red halo created by the laser light
+    #[ 68  32 186] not too bad
+
     finder_red = FindLaser(height, width, 1)
+    result = finder_red.enhancehalo(image, 68, 32, 186)
+    cv2.imwrite("result.jpg", result)
+    exit(1)
     finder_white = FindLaser(height, width, 0)
     contours_red = finder_red.detect(image)
     contours_white = finder_white.detect(image)
@@ -304,5 +341,5 @@ if __name__ == '__main__':
             
     #image = finder_red.detect(image)
     #cv2.imwrite("result.jpg", finder_red.trail);
-    cv2.imwrite("result.jpg", finder_white.trail);
+    # cv2.imwrite("result.jpg", finder_white.trail);
     #cv2.imwrite("result.jpg", image)
