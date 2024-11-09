@@ -269,8 +269,7 @@ class FindLaser():
         return c
 
   #[ 68  32 186] not too bad
-  def enhancehalo(self, image, c1, c2, c3):
-        range = 45
+  def enhancehalo(self, image, c1, c2, c3, range):
         h3 = c3 + range
         if h3 > 255:
           h3 = 255
@@ -309,11 +308,11 @@ if __name__ == '__main__':
     #[ 68  32 186] not too bad
 
     finder_red = FindLaser(height, width, 1)
-    result = finder_red.enhancehalo(image, 68, 32, 186)
+    result = finder_red.enhancehalo(image, 68, 32, 186, 65)
     cv2.imwrite("result.jpg", result)
     exit(1)
     finder_white = FindLaser(height, width, 0)
-    contours_red = finder_red.detect(image)
+    contours_red = finder_red.detect(result)
     contours_white = finder_white.detect(image)
     for c in contours_red:
        center,radius = cv2.minEnclosingCircle(c)
@@ -333,7 +332,7 @@ if __name__ == '__main__':
          x = int(x)
          y = int(y)
          wradius = int(wradius)
-         cv2.circle(image, (x,y), wradius+30, (255, 255, 255), 2)
+         # cv2.circle(image, (x,y), wradius+30, (255, 255, 255), 2)
          if wcenter[0]>start0 and wcenter[0]<end0:
            if wcenter[1]>start1 and wcenter[1]<end1:
              # the white center is somewhere in the red circle
@@ -342,4 +341,4 @@ if __name__ == '__main__':
     #image = finder_red.detect(image)
     #cv2.imwrite("result.jpg", finder_red.trail);
     # cv2.imwrite("result.jpg", finder_white.trail);
-    #cv2.imwrite("result.jpg", image)
+    cv2.imwrite("result.jpg", image)
